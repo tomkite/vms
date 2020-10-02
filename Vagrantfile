@@ -6,7 +6,7 @@ hosthome = "/Users/tom"
 guesthome = "/home/vagrant"
 tmpdir = "/tmp/tmpdir"
 sshkey = "tom_20200501"
-vmdir = "/Users/tom/data/geek/vm"
+vmdir = "/Users/tom/data/geek/vms"
 
 vm1_name = "vm1"
 vm2_name = "vm2"
@@ -45,11 +45,13 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
     vm1.vm.provision "file", source: "#{hosthome}/.ssh/#{sshkey}.pub", destination: "#{tmpdir}/#{sshkey}.pub"
     vm1.vm.provision "file", source: "#{hosthome}/.ssh/#{sshkey}", destination: "#{tmpdir}/#{sshkey}"
     vm1.vm.provision "file", source: "sshconfig", destination: "#{tmpdir}/config"
+    vm1.vm.provision "file", source: ".bash_profile", destination: "#{tmpdir}/.bash_profile"
     vm1.vm.provision "shell", privileged: true, inline: "cat #{tmpdir}/#{sshkey}.pub >> #{guesthome}/.ssh/authorized_keys"
     vm1.vm.provision "shell", privileged: true, inline: "mv #{tmpdir}/#{sshkey} #{guesthome}/.ssh/"
     vm1.vm.provision "shell", privileged: true, inline: "mv #{tmpdir}/config #{guesthome}/.ssh/"
+    vm1.vm.provision "shell", privileged: true, inline: "mv #{tmpdir}/.bash_profile #{guesthome}/.bash_profile"
     vm1.vm.provision "shell", privileged: true, inline: "rm -rf #{tmpdir}"
-    vm1.vm.synced_folder vmdir, "/home/vagrant/vm"
+    vm1.vm.synced_folder vmdir, "/home/vagrant/vms"
     vm1.vm.provision "shell", privileged: true, inline: sh_cmd
     vm1.vm.provision "shell", inline: "echo vm1"
     vm1.vm.provider "virtualbox" do |vb|
@@ -65,11 +67,13 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
     vm2.vm.provision "file", source: "#{hosthome}/.ssh/#{sshkey}.pub", destination: "#{tmpdir}/#{sshkey}.pub"
     vm2.vm.provision "file", source: "#{hosthome}/.ssh/#{sshkey}", destination: "#{tmpdir}/#{sshkey}"
     vm2.vm.provision "file", source: "sshconfig", destination: "#{tmpdir}/config"
+    vm2.vm.provision "file", source: ".bash_profile", destination: "#{tmpdir}/.bash_profile"
     vm2.vm.provision "shell", privileged: true, inline: "cat #{tmpdir}/#{sshkey}.pub >> #{guesthome}/.ssh/authorized_keys"
     vm2.vm.provision "shell", privileged: true, inline: "mv #{tmpdir}/#{sshkey} #{guesthome}/.ssh/"
     vm2.vm.provision "shell", privileged: true, inline: "mv #{tmpdir}/config #{guesthome}/.ssh/"
+    vm2.vm.provision "shell", privileged: true, inline: "mv #{tmpdir}/.bash_profile #{guesthome}/.bash_profile"
     vm2.vm.provision "shell", privileged: true, inline: "rm -rf #{tmpdir}"
-    vm2.vm.synced_folder vmdir, "/home/vagrant/vm"
+    vm2.vm.synced_folder vmdir, "/home/vagrant/vms"
     vm2.vm.provision "shell", inline: "echo vm2"
   end
 
@@ -79,11 +83,13 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
     vm3.vm.provision "file", source: "#{hosthome}/.ssh/#{sshkey}.pub", destination: "#{tmpdir}/#{sshkey}.pub"
     vm3.vm.provision "file", source: "#{hosthome}/.ssh/#{sshkey}", destination: "#{tmpdir}/#{sshkey}"
     vm3.vm.provision "file", source: "sshconfig", destination: "#{tmpdir}/config"
+    vm3.vm.provision "file", source: ".bash_profile", destination: "#{tmpdir}/.bash_profile"
     vm3.vm.provision "shell", privileged: true, inline: "cat #{tmpdir}/#{sshkey}.pub >> #{guesthome}/.ssh/authorized_keys"
     vm3.vm.provision "shell", privileged: true, inline: "mv #{tmpdir}/#{sshkey} #{guesthome}/.ssh/"
     vm3.vm.provision "shell", privileged: true, inline: "mv #{tmpdir}/config #{guesthome}/.ssh/"
+    vm3.vm.provision "shell", privileged: true, inline: "mv #{tmpdir}/.bash_profile #{guesthome}/.bash_profile"
     vm3.vm.provision "shell", privileged: true, inline: "rm -rf #{tmpdir}"
-    vm3.vm.synced_folder vmdir, "/home/vagrant/vm"
+    vm3.vm.synced_folder vmdir, "/home/vagrant/vms"
     vm3.vm.provision "shell", inline: "echo vm3"
   end
 
