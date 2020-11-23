@@ -1,96 +1,72 @@
 # -*- modeL ruby -*-
 # vi: set ft=ruby :
 
-VAGRANTFILE_API_VERSION = "2"
-hosthome = "/Users/tom"
+hosthome = "/Users/tom.cai"
 guesthome = "/home/vagrant"
-tmpdir = "/tmp/tmpdir"
-sshkey = "tom_20200501"
-vmdir = "/Users/tom/data/geek/vms"
-
+sshkey = "tomkite_rsa"
+vmdir = "#{hosthome}/vms/ubuntu"
+sharedir = "#{hosthome}/vms/share"
+persistfile = "~/vms/vmdata.vdi"
 vm1_name = "vm1"
 vm2_name = "vm2"
 vm3_name = "vm3"
-gateway_ip = "192.168.1.1"
-vm1_ip = "192.168.1.221"
-vm2_ip = "192.168.1.222"
-vm3_ip = "192.168.1.223"
-vm1_ip2 = "10.10.1.1"
-vm2_ip2 = "10.10.1.2"
-vm3_ip2 = "10.10.1.3"
+vm1_ip = "192.168.1.21"
+vm2_ip = "192.168.1.22"
+vm3_ip = "192.168.1.23"
 # [tom@tlc ~]$ VBoxManage list bridgedifs
 # Name:            en0: Wi-Fi (Wireless)
 bridge_if = "en0: Wi-Fi (Wireless)"
+gateway_ip = "192.168.1.1"
+
+# ssh vagrant to start ssh session. check #{vmdir}/files/sshconfig vagrant entry if there are ssh issues
 
 sh_cmd = <<eos
-   echo "SCRIPT BEGIN..."
-   hostname
-   w
-   date
-   echo "SCRIPT END!"
+  date
+  ls /vmdata 2>/dev/null 1>dev/null && chmod -R 777 /vmdata
+  cat #{guesthome}/.ssh/#{sshkey}.pub >> #{guesthome}/.ssh/authorized_keys
+  ip -4 a show | grep 192.168 | sed -e"s/^  *//" | cut -d" " -f2 | tee #{guesthome}/ip
 eos
 
-Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
-  config.vm.box = "generic/ubuntu1804"
-  config.ssh.insert_key = true
-  config.vm.provider :virtualbox do |v|
-    v.memory = 1024
-    v.cpus = 1
-    v.linked_clone = true
+Vagrant.configure(2) do |config|
+  config.vm.box = "ubuntu/bionic64"
+  #config.ssh.insert_key = true
+  config.vm.synced_folder sharedir, "/home/vagrant/share"
+  config.vm.provision "file", source: "#{vmdir}/files/.tmux.conf",    destination: "#{guesthome}/.tmux.conf"
+  config.vm.provision "file", source: "#{vmdir}/files/.bash_profile", destination: "#{guesthome}/.bash_profile"
+  config.vm.provision "file", source: "#{vmdir}/files/#{sshkey}.pub", destination: "#{guesthome}/.ssh/#{sshkey}.pub"
+  config.vm.provision "file", source: "#{vmdir}/files/#{sshkey}",     destination: "#{guesthome}/.ssh/#{sshkey}"
+  config.vm.provision "file", source: "#{vmdir}/files/sshconfig",     destination: "#{guesthome}/.ssh/config"
+  config.vm.provision "shell", privileged: true, inline: sh_cmd
+  config.vm.provider "virtualbox" do |vb|
+    #vb.gui = true
+    vb.linked_clone = true
+    vb.memory = 1024
+    vb.cpus = 1
   end
 
   config.vm.define "vm1" do |vm1|
     vm1.vm.hostname = vm1_name
-    vm1.vm.network "public_network", bridge: bridge_if, ip: vm1_ip , bootproto: "static", gateway: gateway_ip
-    vm1.vm.provision "file", source: "#{hosthome}/.ssh/#{sshkey}.pub", destination: "#{tmpdir}/#{sshkey}.pub"
-    vm1.vm.provision "file", source: "#{hosthome}/.ssh/#{sshkey}", destination: "#{tmpdir}/#{sshkey}"
-    vm1.vm.provision "file", source: "sshconfig", destination: "#{tmpdir}/config"
-    vm1.vm.provision "file", source: ".bash_profile", destination: "#{tmpdir}/.bash_profile"
-    vm1.vm.provision "shell", privileged: true, inline: "cat #{tmpdir}/#{sshkey}.pub >> #{guesthome}/.ssh/authorized_keys"
-    vm1.vm.provision "shell", privileged: true, inline: "mv #{tmpdir}/#{sshkey} #{guesthome}/.ssh/"
-    vm1.vm.provision "shell", privileged: true, inline: "mv #{tmpdir}/config #{guesthome}/.ssh/"
-    vm1.vm.provision "shell", privileged: true, inline: "mv #{tmpdir}/.bash_profile #{guesthome}/.bash_profile"
-    vm1.vm.provision "shell", privileged: true, inline: "rm -rf #{tmpdir}"
-    vm1.vm.synced_folder vmdir, "/home/vagrant/vms"
-    vm1.vm.provision "shell", privileged: true, inline: sh_cmd
-    vm1.vm.provision "shell", inline: "echo vm1"
+    vm1.vm.network "public_network", bridge: 'en0: Wi-Fi (Wireless)', ip: vm1_ip
+    # https://github.com/kusnier/vagrant-persistent-storage
+    vm1.persistent_storage.enabled = true
+    vm1.persistent_storage.location = "#{persistfile}"
+    vm1.persistent_storage.size = 2000
+    vm1.persistent_storage.mountname = 'logs'
+    vm1.persistent_storage.filesystem = 'ext4'
+    vm1.persistent_storage.mountpoint = '/vmdata'
+    #config.persistent_storage.volgroupname = 'tomkite' # use default 'vagrant' if not set
     vm1.vm.provider "virtualbox" do |vb|
-#      vb.gui = true
       vb.memory = 2048
       vb.cpus = 2
     end
+    vm1.vm.provision "shell", inline: "echo vm1"
   end
 
   config.vm.define "vm2" do |vm2|
     vm2.vm.hostname = vm2_name
-    vm2.vm.network "public_network", bridge: bridge_if, ip: vm2_ip , bootproto: "static", gateway: gateway_ip
-    vm2.vm.provision "file", source: "#{hosthome}/.ssh/#{sshkey}.pub", destination: "#{tmpdir}/#{sshkey}.pub"
-    vm2.vm.provision "file", source: "#{hosthome}/.ssh/#{sshkey}", destination: "#{tmpdir}/#{sshkey}"
-    vm2.vm.provision "file", source: "sshconfig", destination: "#{tmpdir}/config"
-    vm2.vm.provision "file", source: ".bash_profile", destination: "#{tmpdir}/.bash_profile"
-    vm2.vm.provision "shell", privileged: true, inline: "cat #{tmpdir}/#{sshkey}.pub >> #{guesthome}/.ssh/authorized_keys"
-    vm2.vm.provision "shell", privileged: true, inline: "mv #{tmpdir}/#{sshkey} #{guesthome}/.ssh/"
-    vm2.vm.provision "shell", privileged: true, inline: "mv #{tmpdir}/config #{guesthome}/.ssh/"
-    vm2.vm.provision "shell", privileged: true, inline: "mv #{tmpdir}/.bash_profile #{guesthome}/.bash_profile"
-    vm2.vm.provision "shell", privileged: true, inline: "rm -rf #{tmpdir}"
-    vm2.vm.synced_folder vmdir, "/home/vagrant/vms"
+    vm2.vm.network "public_network", bridge: 'en0: Wi-Fi (Wireless)', ip: vm2_ip
     vm2.vm.provision "shell", inline: "echo vm2"
   end
 
-  config.vm.define "vm3" do |vm3|
-    vm3.vm.hostname = vm3_name
-    vm3.vm.network "public_network", bridge: bridge_if, ip: vm3_ip , bootproto: "static", gateway: gateway_ip
-    vm3.vm.provision "file", source: "#{hosthome}/.ssh/#{sshkey}.pub", destination: "#{tmpdir}/#{sshkey}.pub"
-    vm3.vm.provision "file", source: "#{hosthome}/.ssh/#{sshkey}", destination: "#{tmpdir}/#{sshkey}"
-    vm3.vm.provision "file", source: "sshconfig", destination: "#{tmpdir}/config"
-    vm3.vm.provision "file", source: ".bash_profile", destination: "#{tmpdir}/.bash_profile"
-    vm3.vm.provision "shell", privileged: true, inline: "cat #{tmpdir}/#{sshkey}.pub >> #{guesthome}/.ssh/authorized_keys"
-    vm3.vm.provision "shell", privileged: true, inline: "mv #{tmpdir}/#{sshkey} #{guesthome}/.ssh/"
-    vm3.vm.provision "shell", privileged: true, inline: "mv #{tmpdir}/config #{guesthome}/.ssh/"
-    vm3.vm.provision "shell", privileged: true, inline: "mv #{tmpdir}/.bash_profile #{guesthome}/.bash_profile"
-    vm3.vm.provision "shell", privileged: true, inline: "rm -rf #{tmpdir}"
-    vm3.vm.synced_folder vmdir, "/home/vagrant/vms"
-    vm3.vm.provision "shell", inline: "echo vm3"
-  end
-
 end
+
